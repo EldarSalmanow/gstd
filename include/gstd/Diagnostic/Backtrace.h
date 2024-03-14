@@ -1,0 +1,4 @@
+#ifndef GSTD_BACKTRACE_H
+#define GSTD_BACKTRACE_H
+
+#endif //GSTD_BACKTRACE_H
