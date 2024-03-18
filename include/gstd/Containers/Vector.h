@@ -2,11 +2,15 @@
 #define GSTD_VECTOR_H
 
 #include <gstd/Containers/Slice.h>
+#include <gstd/Type/Optional.h>
 #include <gstd/Type/Types.h>
 
 #include <sstream>
 
 namespace gstd {
+
+    template<typename ValueT>
+    class Allocator;
 
     template<typename ValueT,
              typename AllocatorT = Allocator<ValueT>>
@@ -139,7 +143,7 @@ namespace gstd {
             ++_size;
         }
 
-        GSTD_CONSTEXPR auto At(const IndexType &index) -> Optional<Ref<ValueType>>;
+        GSTD_CONSTEXPR auto At(const IndexType &index) -> Optional<<ValueType>>;
 
         GSTD_CONSTEXPR auto At(const IndexType &index) const -> Optional<Ref<ValueType>>;
 
@@ -233,22 +237,6 @@ namespace gstd {
 
         SizeType _capacity;
     };
-
-    struct A {
-        A(int, int);
-
-        int a;
-        int b;
-    };
-
-    void h() {
-        auto v = Vector<A>::New();
-        auto u = v;
-        u.Append(1, 10);
-        v.Append(10, 20);
-        std::vector<int> a;
-        a.emplace_back(1);
-    }
 
 }
 
