@@ -89,7 +89,7 @@ namespace gstd {
          */
 
         /**
-         * Copying value and return it
+         * Copying value and return copy of it
          * @return Copy of value
          */
         GSTD_CONSTEXPR auto Copy()
@@ -131,6 +131,18 @@ namespace gstd {
 
     public:
 
+        /*
+         *
+         * Some PUBLIC OPERATORS
+         *
+         */
+
+        /**
+         * Equality compare operator for other `Some`
+         * @tparam InputValueT Value type of input `Some`
+         * @param some Input `Some` value
+         * @return Is equal values in this and input `Some`s
+         */
         template<typename InputValueT>
         GSTD_CONSTEXPR auto operator==(const Some<InputValueT> &some) const GSTD_NOEXCEPT {
             static_assert(std::equality_comparable_with<ValueType,
@@ -282,20 +294,6 @@ namespace gstd {
 
         public:
 
-            GSTD_CONSTEXPR auto GetSome() GSTD_NOEXCEPT -> Some<ValueType> & {
-                return _some;
-            }
-
-            GSTD_CONSTEXPR auto GetNone() GSTD_NOEXCEPT -> None & {
-                return _none;
-            }
-
-            GSTD_CONSTEXPR auto GetState() GSTD_NOEXCEPT -> OptionalState & {
-                return _state;
-            }
-
-        public:
-
             GSTD_CONSTEXPR auto operator=(const OptionalStorage &storage) -> OptionalStorage & {
                 if (this == &storage) {
                     return *this;
@@ -364,36 +362,22 @@ namespace gstd {
 
         public:
 
-            GSTD_CONSTEXPR auto Init(Some<ValueType> &&some) {
+            GSTD_CONSTEXPR auto Init(Some<ValueType> &&some) GSTD_NOEXCEPT {
                 _some = std::move(some);
                 _state = OptionalState::Some;
             }
 
-            GSTD_CONSTEXPR auto Init(None &&none) {
+            GSTD_CONSTEXPR auto Init(None &&none) GSTD_NOEXCEPT {
                 _none = std::move(none);
                 _state = OptionalState::None;
             }
 
-            GSTD_CONSTEXPR auto Assign(Some<ValueType> &&some) {
+            GSTD_CONSTEXPR auto Assign(Some<ValueType> &&some) GSTD_NOEXCEPT {
                 Init(std::move(some));
             }
 
-            GSTD_CONSTEXPR auto Assign(None &&none) {
+            GSTD_CONSTEXPR auto Assign(None &&none) GSTD_NOEXCEPT {
                 Init(std::move(none));
-            }
-
-        public:
-
-            GSTD_CONSTEXPR auto GetSome() GSTD_NOEXCEPT -> Some<ValueType> & {
-                return _some;
-            }
-
-            GSTD_CONSTEXPR auto GetNone() GSTD_NOEXCEPT -> None & {
-                return _none;
-            }
-
-            GSTD_CONSTEXPR auto GetState() GSTD_NOEXCEPT -> OptionalState & {
-                return _state;
             }
 
         public:
@@ -612,7 +596,7 @@ namespace gstd {
          * @return Is equal value in `Some` value and input value
          */
         template<typename InputValueT>
-        GSTD_CONSTEXPR auto Contains(InputValueT &&inputValue) const GSTD_NOEXCEPT -> bool {
+        GSTD_CONSTEXPR auto Contains(const InputValueT &inputValue) const GSTD_NOEXCEPT -> bool {
             static_assert(std::equality_comparable_with<ValueType,
                                                         InputValueT>,
                           "`ValueType` and `InputValueT` must be comparable with '==' operator!");
@@ -621,7 +605,7 @@ namespace gstd {
                 return false;
             }
 
-            return Storage::_some.CRef() == std::forward<InputValueT>(inputValue);
+            return Storage::_some.CRef() == inputValue;
         }
 
         /**
@@ -632,7 +616,8 @@ namespace gstd {
          */
         template<typename FunctionT>
         GSTD_CONSTEXPR auto Exists(FunctionT &&function)
-        const GSTD_NOEXCEPT(std::is_nothrow_invocable_v<FunctionT &&>) -> bool {
+        const GSTD_NOEXCEPT(std::is_nothrow_invocable_v<FunctionT &&,
+                                                        const ValueType &>) -> bool {
             static_assert(std::is_invocable_v<FunctionT &&,
                                               const ValueType &>,
                           "`FunctionT` must be invocable with `ValueType` argument!");
@@ -804,9 +789,9 @@ namespace gstd {
          */
         template<typename FunctionT>
         GSTD_CONSTEXPR auto Inspect(FunctionT &&function)
-        const GSTD_NOEXCEPT(std::is_nothrow_copy_constructible_v<ValueType>
-                         && std::is_nothrow_invocable_v<FunctionT &&,
-                                                        const ValueType &>) -> Optional<ValueType> {
+        const GSTD_NOEXCEPT(std::conjunction_v<std::is_nothrow_copy_constructible<ValueType>,
+                                               std::is_nothrow_invocable<FunctionT &&,
+                                                                         const ValueType &>>) -> Optional<ValueType> {
             static_assert(std::is_invocable_v<FunctionT &&,
                                               const ValueType &>,
                           "`FunctionT` must be invocable with `ValueType` argument!");
@@ -866,10 +851,10 @@ namespace gstd {
                  typename AlternativeFunctionT>
         GSTD_CONSTEXPR auto MapOrElse(FunctionT &&function,
                                       AlternativeFunctionT &&alternativeFunction)
-        && GSTD_NOEXCEPT(std::is_nothrow_invocable_v<FunctionT &&,
-                                                     ValueType &&>
-                      && std::is_nothrow_invocable_v<AlternativeFunctionT &&>) -> std::invoke_result_t<FunctionT &&,
-                                                                                                       ValueType &&> {
+        && GSTD_NOEXCEPT(std::conjunction_v<std::is_nothrow_invocable<FunctionT &&,
+                                                                      ValueType &&>,
+                                            std::is_nothrow_invocable<AlternativeFunctionT &&>>) -> std::invoke_result_t<FunctionT &&,
+                                                                                                                         ValueType &&> {
             static_assert(std::is_invocable_v<FunctionT &&,
                                               ValueType &&>,
                           "`FunctionT` must be invocable with `ValueType` argument!");
@@ -901,10 +886,10 @@ namespace gstd {
                  typename NoneFunctionT>
         GSTD_CONSTEXPR auto Match(SomeFunctionT &&someFunction,
                                   NoneFunctionT &&noneFunction)
-        & GSTD_NOEXCEPT(std::is_nothrow_invocable_v<SomeFunctionT &&,
-                                                    ValueType &>
-                     && std::is_nothrow_invocable_v<NoneFunctionT &&>) -> std::invoke_result_t<SomeFunctionT &&,
-                                                                                               ValueType &> {
+        & GSTD_NOEXCEPT(std::conjunction_v<std::is_nothrow_invocable<SomeFunctionT &&,
+                                                                     ValueType &>,
+                                           std::is_nothrow_invocable<NoneFunctionT &&>>) -> std::invoke_result_t<SomeFunctionT &&,
+                                                                                                                 ValueType &> {
             static_assert(std::is_invocable_v<SomeFunctionT &&,
                                               ValueType &>,
                           "`SomeFunctionT` must be invocable with `ValueType` argument!");
@@ -937,10 +922,10 @@ namespace gstd {
                  typename NoneFunctionT>
         GSTD_CONSTEXPR auto Match(SomeFunctionT &&someFunction,
                                   NoneFunctionT &&noneFunction)
-        const & GSTD_NOEXCEPT(std::is_nothrow_invocable_v<SomeFunctionT &&,
-                                                          const ValueType &>
-                           && std::is_nothrow_invocable_v<NoneFunctionT &&>) -> std::invoke_result_t<SomeFunctionT &&,
-                                                                                                     const ValueType &> {
+        const & GSTD_NOEXCEPT(std::conjunction_v<std::is_nothrow_invocable<SomeFunctionT &&,
+                                                                           const ValueType &>,
+                                                 std::is_nothrow_invocable<NoneFunctionT &&>>) -> std::invoke_result_t<SomeFunctionT &&,
+                                                                                                                       const ValueType &> {
             static_assert(std::is_invocable_v<SomeFunctionT &&,
                                               const ValueType &>,
                           "`SomeFunctionT` must be invocable with `ValueType` argument!");
@@ -973,10 +958,10 @@ namespace gstd {
                  typename NoneFunctionT>
         GSTD_CONSTEXPR auto Match(SomeFunctionT &&someFunction,
                                   NoneFunctionT &&noneFunction)
-        && GSTD_NOEXCEPT(std::is_nothrow_invocable_v<SomeFunctionT &&,
-                                                     ValueType &&>
-                      && std::is_nothrow_invocable_v<NoneFunctionT &&>) -> std::invoke_result_t<SomeFunctionT &&,
-                                                                                                ValueType &&> {
+        && GSTD_NOEXCEPT(std::conjunction_v<std::is_nothrow_invocable<SomeFunctionT &&,
+                                                                      ValueType &&>,
+                                            std::is_nothrow_invocable<NoneFunctionT &&>>) -> std::invoke_result_t<SomeFunctionT &&,
+                                                                                                                  ValueType &&> {
             static_assert(std::is_invocable_v<SomeFunctionT &&,
                                               ValueType &&>,
                           "`SomeFunctionT` must be invocable with `ValueType` argument!");
@@ -1009,10 +994,10 @@ namespace gstd {
                  typename NoneFunctionT>
         GSTD_CONSTEXPR auto Match(SomeFunctionT &&someFunction,
                                   NoneFunctionT &&noneFunction)
-        const && GSTD_NOEXCEPT(std::is_nothrow_invocable_v<SomeFunctionT &&,
-                                                           ValueType &&>
-                            && std::is_nothrow_invocable_v<NoneFunctionT &&>) -> std::invoke_result_t<SomeFunctionT &&,
-                                                                                                      const ValueType &&> {
+        const && GSTD_NOEXCEPT(std::conjunction_v<std::is_nothrow_invocable<SomeFunctionT &&,
+                                                                            ValueType &&>,
+                                                  std::is_nothrow_invocable<NoneFunctionT &&>>) -> std::invoke_result_t<SomeFunctionT &&,
+                                                                                                                        const ValueType &&> {
             static_assert(std::is_invocable_v<SomeFunctionT &&,
                                               const ValueType &>,
                           "`SomeFunctionT` must be invocable with `ValueType` argument!");
@@ -1081,7 +1066,7 @@ namespace gstd {
          */
         template<typename InputValueT>
         GSTD_CONSTEXPR auto And(Optional<InputValueT> &&inputOptional) && GSTD_NOEXCEPT -> Optional<InputValueT> {
-            if (IsNone() || inputOptional.IsNone()) {
+            if (IsNone()) {
                 return MakeNone();
             }
 
@@ -1156,15 +1141,11 @@ namespace gstd {
          * @return Result of 'or' boolean operation
          */
         GSTD_CONSTEXPR auto Or(Optional<ValueType> &&inputOptional) && GSTD_NOEXCEPT -> Optional<ValueType> {
-            if (IsSome()) {
-                return MakeSome(Storage::_some.Move());
-            }
-
-            if (inputOptional.IsSome()) {
+            if (IsNone()) {
                 return std::move(inputOptional);
             }
 
-            return MakeNone();
+            return MakeSome(Storage::_some.Move());
         }
 
         /**
@@ -1180,15 +1161,17 @@ namespace gstd {
         && GSTD_NOEXCEPT(std::is_nothrow_invocable_v<FunctionT &&>) -> Optional<ValueType> {
             static_assert(std::is_invocable_v<FunctionT &&>,
                           "`FunctionT` must be invocable!");
-            static_assert(std::is_same_v<std::invoke_result_t<FunctionT &&>,
-                                         Optional<ValueType>>,
-                          "`FunctionT` must return `Optional<ValueType>`!");
+            static_assert(detail::IsOptionalV<std::invoke_result_t<FunctionT &&>>,
+                          "`FunctionT` must return `Optional`!");
+            static_assert(std::is_same_v<typename std::invoke_result_t<FunctionT &&>::ValueType,
+                                         ValueType>,
+                          "`FunctionT` must return `Optional` with `ValueType` that equal to self `ValueType`!");
 
-            if (IsSome()) {
-                return MakeSome(Storage::_some.Move());
+            if (IsNone()) {
+                return std::invoke(std::forward<FunctionT>(function));
             }
 
-            return std::invoke(std::forward<FunctionT>(function));
+            return MakeSome(Storage::_ok.Move());
         }
 
         /**
@@ -1394,6 +1377,12 @@ namespace gstd {
         }
 
     public:
+
+        /*
+         *
+         * Optional PUBLIC OPERATORS
+         *
+         */
 
         /**
          * Copy assignment operator for other `Optional`

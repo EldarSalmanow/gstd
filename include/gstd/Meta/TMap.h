@@ -15,6 +15,18 @@ namespace gstd {
 
     };
 
+    template<typename FirstT,
+             auto V>
+    struct TVPair {
+
+        using FirstType = FirstT;
+
+        using SecondType = decltype(V);
+
+        GSTD_INLINE static GSTD_CONSTEXPR SecondType Value = V;
+
+    };
+
     template<std::uint64_t IndexV,
              typename PairT>
     struct TPairElement {
@@ -81,17 +93,26 @@ namespace gstd {
     };
 
     template<typename FirstT,
+             typename SecondT>
+    struct InstantiateType<TPair<FirstT,
+                                 SecondT>> {
+
+        using Type = SecondT;
+
+    };
+
+    template<typename FirstT,
              typename PairT,
              typename... Pairs>
     struct TMapSearch {
 
         using FirstType = FirstT;
 
-        using SecondType = std::conditional_t<std::is_same_v<FirstT,
-                                                             typename PairT::FirstType>,
-                                              typename PairT::SecondType,
-                                              typename TMapSearch<FirstT,
-                                                                  Pairs...>::Type>;
+        using SecondType = InstantiateIfT<std::is_same_v<FirstT,
+                                                         typename PairT::FirstType>,
+                                          PairT,
+                                          TMapSearch<FirstT,
+                                                     Pairs...>>;
 
         using Type = SecondType;
 
@@ -104,9 +125,9 @@ namespace gstd {
 
         using FirstType = FirstT;
 
-        using SecondType = std::enable_if_t<std::is_same_v<FirstT,
-                                                           typename PairT::FirstType>,
-                                            typename PairT::SecondType>;
+        using SecondType = InstantiateIfT<std::is_same_v<FirstT,
+                                                         typename PairT::FirstType>,
+                                          PairT>;
 
         using Type = SecondType;
 
@@ -133,11 +154,11 @@ namespace gstd {
     };
 
     void e() {
-        TMapSearch<double, TPair<void, float>, TPair<double, int>, TPair<int, double>>::Type t = 0.31;
-        static_assert(std::is_same_v<double, decltype(t)>);
+        TMapSearch<double, TPair<void, float>, TPair<double, int>, TPair<int, double>>::Type t = 1;
+        static_assert(std::is_same_v<int, decltype(t)>);
 
-        TMapElement<double, TMap<TPair<int, void>, TPair<double, const float>, TPair<const unsigned long *, std::string *>>>::Type p = 0.0;
-        static_assert(std::is_same_v<decltype(p), const float>);
+        TMapElement<const unsigned long *, TMap<TPair<int, void>, TPair<double, const float>, TPair<const unsigned long *, std::string *>>>::Type p = nullptr;
+        static_assert(std::is_same_v<decltype(p), std::string *>);
     }
 
 }

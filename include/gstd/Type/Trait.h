@@ -152,6 +152,100 @@ namespace gstd {
     template<typename T>
     AddRValueReferenceT<T> DeclVal() GSTD_NOEXCEPT;
 
+    template<typename T>
+    struct InstantiateType {
+
+        using Type = typename T::Type;
+
+    };
+
+    template<typename T>
+    using InstantiateTypeT = typename InstantiateType<T>::Type;
+
+    template<typename T>
+    struct InstantiateValue {
+
+        using Type = decltype(T::Value);
+
+        GSTD_INLINE static GSTD_CONSTEXPR Type Value = T::Value;
+
+    };
+
+    template<typename T>
+    using InstantiateValueT = typename InstantiateValue<T>::Type;
+
+    template<typename T>
+    GSTD_INLINE GSTD_CONSTEXPR InstantiateValueT<T> InstantiateValueV = InstantiateValue<T>::Value;
+
+    template<typename T>
+    struct LazyType {
+
+        using Type = T;
+
+    };
+
+    template<auto V>
+    struct LazyValue {
+
+        using Type = decltype(V);
+
+        GSTD_INLINE static GSTD_CONSTEXPR Type Value = V;
+
+    };
+
+    namespace detail {
+
+        template<bool C,
+                 typename T,
+                 typename R>
+        struct InstantiateIfImpl {
+
+            using Type = InstantiateTypeT<T>;
+
+        };
+
+        template<typename T,
+                 typename R>
+        struct InstantiateIfImpl<false,
+                                 T,
+                                 R> {
+
+            using Type = InstantiateTypeT<R>;
+
+        };
+
+    }
+
+    template<typename C,
+             typename T,
+             typename R>
+    struct InstantiateIf {
+
+        using Type = typename detail::InstantiateIfImpl<InstantiateValueV<C>,
+                                                        T,
+                                                        R>::Type;
+
+    };
+
+    struct NoInstantiate {
+
+    };
+
+    template<typename C,
+             typename T,
+             typename R = NoInstantiate>
+    using LazyInstantiateIfT = typename InstantiateIf<C,
+                                                      T,
+                                                      R>::Type;
+
+    template<bool C,
+             typename T,
+             typename R = NoInstantiate>
+    using InstantiateIfT = LazyInstantiateIfT<IntegralConstant<bool,
+                                                               C>,
+                                              T,
+                                              R>;
+
 }
 
 #endif //GSTD_TRAIT_H
