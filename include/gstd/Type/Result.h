@@ -107,6 +107,30 @@ namespace gstd {
             return std::move(_value);
         }
 
+    public:
+
+        /*
+         *
+         * Ok PUBLIC OPERATORS
+         *
+         */
+
+        /**
+         * Equality compare operator for other `Ok`
+         * @tparam InputValueT Value type of input `Ok`
+         * @param ok Input `Ok` value
+         * @return Is equal values in this and input `Ok`s
+         * @todo Add return type check?
+         */
+        template<typename InputValueT>
+        GSTD_CONSTEXPR auto operator==(const Ok<InputValueT> &ok) const GSTD_NOEXCEPT -> bool {
+            static_assert(std::equality_comparable_with<ValueType,
+                                                        InputValueT>,
+                          "`ValueType` and `InputValueT` must be comparable with '==' operator!");
+
+            return CRef() == ok.CRef();
+        }
+
     private:
 
         /*
@@ -132,19 +156,53 @@ namespace gstd {
         return Ok<ValueT>::New(std::forward<ValueT>(value));
     }
 
+    /**
+     * Wrapper class for any error
+     * @tparam ErrorT Error type
+     */
     template<typename ErrorT>
     class Err {
     public:
 
+        /*
+         *
+         * Err PUBLIC TYPES
+         *
+         */
+
+        /**
+         * Error type
+         */
         using ErrorType = ErrorT;
 
     public:
 
+        /*
+         *
+         * Err PUBLIC CONSTRUCTORS
+         *
+         */
+
+        /**
+         * Main constructor for `Err` from any error
+         * @param error Error
+         */
         GSTD_CONSTEXPR GSTD_EXPLICIT Err(ErrorType &&error) GSTD_NOEXCEPT
                 : _error(std::move(error)) {}
 
     public:
 
+        /*
+         *
+         * Err PUBLIC STATIC METHODS
+         *
+         */
+
+        /**
+         * Creating `Err` value
+         * @param error Input error
+         * @return `Err` value
+         */
         static GSTD_CONSTEXPR auto New(ErrorType &&error) GSTD_NOEXCEPT -> Err<ErrorType> {
             return Err<ErrorType> {
                 std::forward<ErrorType>(error)
@@ -153,32 +211,97 @@ namespace gstd {
 
     public:
 
+        /*
+         *
+         * Err PUBLIC METHODS
+         *
+         */
+
+        /**
+         * Copying error and return copy of it
+         * @return Copy of error
+         */
         GSTD_CONSTEXPR auto Copy()
         const GSTD_NOEXCEPT(std::is_nothrow_copy_constructible_v<ErrorType>) -> ErrorType {
             return _error;
         }
 
+        /**
+         * Getting lvalue reference of error
+         * @return Lvalue reference of error
+         */
         GSTD_CONSTEXPR auto Ref() GSTD_NOEXCEPT -> ErrorType & {
             return _error;
         }
 
+        /**
+         * Getting constant lvalue reference of error
+         * @return Constant lvalue reference of error
+         */
         GSTD_CONSTEXPR auto CRef() const GSTD_NOEXCEPT -> const ErrorType & {
             return _error;
         }
 
+        /**
+         * Getting rvalue reference of error for moving
+         * @return Rvalue reference of error
+         */
         GSTD_CONSTEXPR auto Move() GSTD_NOEXCEPT -> ErrorType && {
             return std::move(_error);
         }
 
+        /**
+         * Getting constant rvalue reference of error for moving
+         * @return Constant rvalue reference of error
+         */
         GSTD_CONSTEXPR auto CMove() const GSTD_NOEXCEPT -> const ErrorType && {
             return std::move(_error);
         }
 
+    public:
+
+        /*
+         *
+         * Err PUBLIC OPERATORS
+         *
+         */
+
+        /**
+         * Equality compare operator for other `Err`
+         * @tparam InputErrorT Error type of input `Err`
+         * @param err Input `Err` value
+         * @return Is equal errors in this and input `Err`s
+         * @todo Add return type check?
+         */
+        template<typename InputErrorT>
+        GSTD_CONSTEXPR auto operator==(const Err<InputErrorT> &err) const GSTD_NOEXCEPT -> bool {
+            static_assert(std::equality_comparable_with<ErrorType,
+                                                        InputErrorT>,
+                          "`ErrorType` and `InputErrorT` must be comparable with '==' operator!");
+
+            return CRef() == err.CRef();
+        }
+
     private:
 
+        /*
+         *
+         * Err PRIVATE FIELDS
+         *
+         */
+
+        /**
+         * Error
+         */
         ErrorType _error;
     };
 
+    /**
+     * Smart creating an `Err` value
+     * @tparam ErrorT Error type
+     * @param error Error
+     * @return `Err` value
+     */
     template<typename ErrorT>
     GSTD_CONSTEXPR auto MakeErr(ErrorT &&error) GSTD_NOEXCEPT -> Err<ErrorT> {
         return Err<ErrorT>::New(std::forward<ErrorT>(error));
@@ -226,14 +349,14 @@ namespace gstd {
                                              std::is_nothrow_copy_constructible<ErrorType>>) {
                 if (storage._state == ResultState::Ok) {
                     Init(MakeOk(storage._ok.Copy()));
-                } else {
+                } else if (storage._state == ResultState::Err) {
                     Init(MakeErr(storage._err.Copy()));
                 }
             }
 
             GSTD_CONSTEXPR ResultStorage(ResultStorage &&storage) GSTD_NOEXCEPT {
                 if (storage._state == ResultState::Ok) {
-                    Init(std::move(storage._some));
+                    Init(std::move(storage._ok));
                 } else if (storage._state == ResultState::Err) {
                     Init(std::move(storage._err));
                 }
@@ -253,34 +376,40 @@ namespace gstd {
 
         public:
 
-            GSTD_CONSTEXPR auto Init(Ok<ValueType> &&ok) {
+            /*
+             * TODO: Check 'noexcept's
+             */
+
+            GSTD_CONSTEXPR auto Init(Ok<ValueType> &&ok) -> void {
                 std::construct_at(&_ok,
                                   std::move(ok));
                 _state = ResultState::Ok;
             }
 
-            GSTD_CONSTEXPR auto Init(Err<ErrorType> &&err) {
+            GSTD_CONSTEXPR auto Init(Err<ErrorType> &&err)  -> void {
                 std::construct_at(&_err,
                                   std::move(err));
                 _state = ResultState::Err;
             }
 
-            GSTD_CONSTEXPR auto Assign(Ok<ValueType> &&ok) {
+            GSTD_CONSTEXPR auto Assign(Ok<ValueType> &&ok) -> void {
                 if (_state == ResultState::Ok) {
                     _ok = std::move(ok);
-                } else {
+                } else if (_state == ResultState::Err) {
+                    std::destroy_at(&_err.Ref());
+
                     Init(std::move(ok));
                 }
-                // TODO: check destroys
             }
 
-            GSTD_CONSTEXPR auto Assign(Err<ErrorType> &&err) {
+            GSTD_CONSTEXPR auto Assign(Err<ErrorType> &&err) -> void {
                 if (_state == ResultState::Ok) {
                     std::destroy_at(&_ok.Ref());
-                }
-                // TODO: add Err value destroy?
 
-                Init(std::move(err));
+                    Init(std::move(err));
+                } else if (_state == ResultState::Err) {
+                    _err = std::move(err);
+                }
             }
 
         public:
@@ -421,18 +550,44 @@ namespace gstd {
     template<typename ValueT>
     class Optional;
 
+    /**
+     * Class for type safe containing `Ok` value or `Err` value in compile-time and run-rime
+     * @tparam ValueT Value type
+     * @tparam ErrorT Error type
+     */
     template<typename ValueT,
              typename ErrorT>
     class Result : private detail::ResultStorage<ValueT,
                                                  ErrorT> {
     public:
 
+        /*
+         *
+         * Result PUBLIC TYPES
+         *
+         */
+
+        /**
+         * Value type
+         */
         using ValueType = ValueT;
 
+        /**
+         * Error type
+         */
         using ErrorType = ErrorT;
 
     private:
 
+        /*
+         *
+         * Result PRIVATE TYPES
+         *
+         */
+
+        /**
+         * Storage type
+         */
         using Storage = detail::ResultStorage<ValueType,
                                               ErrorType>;
 

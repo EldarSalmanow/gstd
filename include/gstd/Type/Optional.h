@@ -142,9 +142,10 @@ namespace gstd {
          * @tparam InputValueT Value type of input `Some`
          * @param some Input `Some` value
          * @return Is equal values in this and input `Some`s
+         * @todo Add check return type?
          */
         template<typename InputValueT>
-        GSTD_CONSTEXPR auto operator==(const Some<InputValueT> &some) const GSTD_NOEXCEPT {
+        GSTD_CONSTEXPR auto operator==(const Some<InputValueT> &some) const GSTD_NOEXCEPT -> bool {
             static_assert(std::equality_comparable_with<ValueType,
                                                         InputValueT>,
                           "`ValueType` and `InputValueT` must be comparable with '==' operator!");
@@ -265,18 +266,22 @@ namespace gstd {
 
         public:
 
-            GSTD_CONSTEXPR auto Init(Some<ValueType> &&some) {
+            /*
+             * TODO: Check 'noexcept's
+             */
+
+            GSTD_CONSTEXPR auto Init(Some<ValueType> &&some) -> void {
                 std::construct_at(&_some,
                                   std::move(some));
                 _state = OptionalState::Some;
             }
 
-            GSTD_CONSTEXPR auto Init(None &&none) {
+            GSTD_CONSTEXPR auto Init(None &&none) -> void {
                 _none = std::move(none);
                 _state = OptionalState::None;
             }
 
-            GSTD_CONSTEXPR auto Assign(Some<ValueType> &&some) {
+            GSTD_CONSTEXPR auto Assign(Some<ValueType> &&some) -> void {
                 if (_state == OptionalState::Some) {
                     _some = std::move(some);
                 } else {
@@ -284,7 +289,7 @@ namespace gstd {
                 }
             }
 
-            GSTD_CONSTEXPR auto Assign(None &&none) {
+            GSTD_CONSTEXPR auto Assign(None &&none) -> void {
                 if (_state == OptionalState::Some) {
                     std::destroy_at(&_some.Ref());
                 }
@@ -362,21 +367,21 @@ namespace gstd {
 
         public:
 
-            GSTD_CONSTEXPR auto Init(Some<ValueType> &&some) GSTD_NOEXCEPT {
+            GSTD_CONSTEXPR auto Init(Some<ValueType> &&some) GSTD_NOEXCEPT -> void {
                 _some = std::move(some);
                 _state = OptionalState::Some;
             }
 
-            GSTD_CONSTEXPR auto Init(None &&none) GSTD_NOEXCEPT {
+            GSTD_CONSTEXPR auto Init(None &&none) GSTD_NOEXCEPT -> void {
                 _none = std::move(none);
                 _state = OptionalState::None;
             }
 
-            GSTD_CONSTEXPR auto Assign(Some<ValueType> &&some) GSTD_NOEXCEPT {
+            GSTD_CONSTEXPR auto Assign(Some<ValueType> &&some) GSTD_NOEXCEPT -> void {
                 Init(std::move(some));
             }
 
-            GSTD_CONSTEXPR auto Assign(None &&none) GSTD_NOEXCEPT {
+            GSTD_CONSTEXPR auto Assign(None &&none) GSTD_NOEXCEPT -> void {
                 Init(std::move(none));
             }
 
