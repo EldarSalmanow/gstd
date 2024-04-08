@@ -421,6 +421,10 @@ namespace gstd {
 
     }
 
+    template<typename ValueT,
+             typename ErrorT>
+    class Result;
+
     /**
      * Class for type safe containing `Some` value or `None` value in compile-time and run-time
      * @tparam ValueT Value type
@@ -1453,6 +1457,28 @@ namespace gstd {
     template<typename ValueT>
     GSTD_CONSTEXPR auto MakeNoneOptional() -> Optional<ValueT> {
         return Optional<ValueT>(MakeNone());
+    }
+
+    template<typename ValueT,
+             typename ErrorT>
+    GSTD_CONSTEXPR auto Result<ValueT,
+                               ErrorT>::AsOk() && GSTD_NOEXCEPT -> Optional<ValueType> {
+        if (IsErr()) {
+            return MakeNone();
+        }
+
+        return MakeSome(Storage::_ok.Move());
+    }
+
+    template<typename ValueT,
+             typename ErrorT>
+    GSTD_CONSTEXPR auto Result<ValueT,
+                               ErrorT>::AsErr() && GSTD_NOEXCEPT -> Optional<ErrorType> {
+        if (IsOk()) {
+            return MakeNone();
+        }
+
+        return MakeSome(Storage::_err.Move());
     }
 
 }

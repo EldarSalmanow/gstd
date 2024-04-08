@@ -471,25 +471,6 @@ namespace examples  {
         int _a;
     };
 
-    namespace optional {
-
-        void OptionalExample() {
-            constexpr auto result = gstd::MakeOptional(10).Filter([] (const auto &value) -> bool {
-                return value >= 10;
-            }).Map([] (auto &&value) -> MyClass {
-                return MyClass { std::forward<decltype(value)>(value) };
-            }).Match([] (auto &value) -> MyClass {
-                return MyClass { value.get_a() * 2 };
-            },
-                     [] () -> MyClass {
-                return MyClass { 0 };
-            });
-
-            static_assert(result.get_a() == 20);
-        }
-
-    }
-
     namespace match {
 
         void MatchExample() {
@@ -509,6 +490,248 @@ namespace examples  {
 
     }
 
+    namespace optional {
+
+        void OptionalExample() {
+            constexpr auto result = gstd::MakeSomeOptional(10)
+                                                            .Filter([] (const auto &value) -> bool {
+                return value >= 10;
+            }).Map([] (auto &&value) -> MyClass {
+                return MyClass { std::forward<decltype(value)>(value) };
+            }).Match([] (auto &value) -> MyClass {
+                return MyClass { value.get_a() * 2 };
+            },
+                     [] () -> MyClass {
+                return MyClass { 0 };
+            });
+
+            static_assert(result.get_a() == 20);
+        }
+
+    }
+
+    namespace result {
+
+        enum class Version {
+            V1,
+            V2,
+            V3
+        };
+
+        enum class ParseVersionError {
+            UnknownVersion
+        };
+
+        constexpr auto ParseVersion(std::string_view version) -> gstd::Result<Version, ParseVersionError> {
+            if (version == "v1") {
+                return gstd::MakeOk(Version::V1);
+            } else if (version == "v2") {
+                return gstd::MakeOk(Version::V2);
+            } else if (version == "v3") {
+                return gstd::MakeOk(Version::V3);
+            }
+
+            return gstd::MakeErr(ParseVersionError::UnknownVersion);
+        }
+
+        void ResultExample() {
+            static_assert(ParseVersion("<?>").UnwrapErr() == ParseVersionError::UnknownVersion);
+        }
+
+    }
+
+}
+
+enum class ExpressionType {
+    ValueExpression,
+    BinaryExpression
+};
+
+class Expression {
+public:
+
+    GSTD_CONSTEXPR virtual auto GetType() const GSTD_NOEXCEPT -> ExpressionType = 0;
+};
+
+class ValueExpression : public Expression {
+public:
+
+    GSTD_CONSTEXPR GSTD_EXPLICIT ValueExpression(std::int64_t value) GSTD_NOEXCEPT
+            : _value(value) {}
+
+public:
+
+    static GSTD_CONSTEXPR auto New(std::int64_t value) GSTD_NOEXCEPT -> ValueExpression {
+        return ValueExpression(value);
+    }
+
+public:
+
+    GSTD_CONSTEXPR auto GetValue() const GSTD_NOEXCEPT -> std::int64_t {
+        return _value;
+    }
+
+public:
+
+    GSTD_CONSTEXPR auto GetType() const GSTD_NOEXCEPT -> ExpressionType override {
+        return ExpressionType::ValueExpression;
+    }
+
+private:
+
+    std::int64_t _value;
+};
+
+enum class BinaryOperation {
+    Add,
+    Sub,
+    Mul,
+    Div
+};
+
+class BinaryExpression : public Expression {
+public:
+
+    GSTD_CONSTEXPR BinaryExpression(Expression *firstExpression,
+                                    Expression *secondExpression,
+                                    BinaryOperation operation) GSTD_NOEXCEPT
+            : _firstExpression(firstExpression),
+              _secondExpression(secondExpression),
+              _operation(operation) {}
+
+public:
+
+    static GSTD_CONSTEXPR auto New(Expression *firstExpression,
+                                   Expression *secondExpression,
+                                   BinaryOperation operation) GSTD_NOEXCEPT -> BinaryExpression {
+        return BinaryExpression(firstExpression,
+                                secondExpression,
+                                operation);
+    }
+
+public:
+
+    GSTD_CONSTEXPR auto GetFirstExpression() const GSTD_NOEXCEPT -> Expression * {
+        return _firstExpression;
+    }
+
+    GSTD_CONSTEXPR auto GetSecondExpression() const GSTD_NOEXCEPT -> Expression *{
+        return _secondExpression;
+    }
+
+    GSTD_CONSTEXPR auto GetOperation() const GSTD_NOEXCEPT -> BinaryOperation {
+        return _operation;
+    }
+
+public:
+
+    GSTD_CONSTEXPR auto GetType() const GSTD_NOEXCEPT -> ExpressionType override {
+        return ExpressionType::BinaryExpression;
+    }
+
+private:
+
+    Expression *_firstExpression;
+
+    Expression *_secondExpression;
+
+    BinaryOperation _operation;
+};
+
+GSTD_CONSTEXPR auto Interpret(Expression *expression) -> std::int64_t {
+    std::int64_t result = 0;
+
+    auto expressionType = expression->GetType();
+
+    if (expressionType == ExpressionType::ValueExpression) {
+        auto valueExpression = static_cast<ValueExpression *>(expression);
+
+        result = valueExpression->GetValue();
+    } else if (expressionType == ExpressionType::BinaryExpression) {
+        auto binaryExpression = static_cast<BinaryExpression *>(expression);
+
+        auto firstExpression = binaryExpression->GetFirstExpression();
+        auto secondExpression = binaryExpression->GetSecondExpression();
+        auto operation = binaryExpression->GetOperation();
+
+        auto firstExpressionResult = Interpret(firstExpression);
+        auto secondExpressionResult = Interpret(secondExpression);
+
+        if (operation == BinaryOperation::Add) {
+            result = firstExpressionResult + secondExpressionResult;
+        } else if (operation == BinaryOperation::Sub) {
+            result = firstExpressionResult - secondExpressionResult;
+        } else if (operation == BinaryOperation::Mul) {
+            result = firstExpressionResult * secondExpressionResult;
+        } else if (operation == BinaryOperation::Div) {
+            result = firstExpressionResult / secondExpressionResult;
+        }
+    }
+
+    return result;
+}
+
+enum class TokenType {
+    Number,
+    Plus,
+    Minus,
+    Star,
+    Slash
+};
+
+class Token {
+public:
+
+    GSTD_CONSTEXPR Token(TokenType type,
+                         gstd::Optional<std::string_view> value) GSTD_NOEXCEPT
+            : _type(type),
+              _value(std::move(value)) {}
+
+public:
+
+    static GSTD_CONSTEXPR auto New(TokenType type,
+                                   gstd::Optional<std::string_view> value) -> Token {
+        return Token(type,
+                     std::move(value));
+    }
+
+    static GSTD_CONSTEXPR auto New(TokenType type,
+                                   std::string_view value) -> Token {
+        return Token::New(type,
+                          gstd::MakeSome(std::move(value)));
+    }
+
+    static GSTD_CONSTEXPR auto New(TokenType type) -> Token {
+        return Token::New(type,
+                          gstd::MakeNone());
+    }
+
+public:
+
+    GSTD_CONSTEXPR auto GetType() const GSTD_NOEXCEPT -> TokenType {
+        return _type;
+    }
+
+    GSTD_CONSTEXPR auto GetValue() const GSTD_NOEXCEPT -> gstd::Optional<std::string_view> {
+        return _value;
+    }
+
+public:
+
+    TokenType _type;
+
+    gstd::Optional<std::string_view> _value;
+};
+
+void y() {
+    static constexpr auto valExpr1 = ValueExpression::New(10);
+    constexpr auto *expr1 = (Expression *) &valExpr1;
+    static constexpr auto valExpr2 = ValueExpression::New(1);
+    constexpr auto *expr2 = (Expression *) &valExpr2;
+    static constexpr auto binExpr = BinaryExpression::New(expr1, expr2, BinaryOperation::Div);
+    constexpr auto *expr3 = (Expression *) &binExpr;
+    constexpr auto result = Interpret(expr3);
+    static_assert(result == 10);
 }
 
 class Context {

@@ -657,9 +657,10 @@ namespace gstd {
                                Storage::_err.CRef());
         }
 
-//        GSTD_CONSTEXPR auto Ok() const GSTD_NOEXCEPT -> Optional<ValueType>;
-//
-//        GSTD_CONSTEXPR auto Err() const GSTD_NOEXCEPT -> Optional<ErrorType>;
+        // TODO: delete AsOk and AsErr?
+        GSTD_CONSTEXPR auto AsOk() && GSTD_NOEXCEPT -> Optional<ValueType>;
+
+        GSTD_CONSTEXPR auto AsErr() && GSTD_NOEXCEPT -> Optional<ErrorType>;
 
         GSTD_CONSTEXPR auto Copy()
         const & GSTD_NOEXCEPT(std::conjunction_v<std::is_nothrow_copy_constructible<ValueType>,
@@ -1117,32 +1118,6 @@ namespace gstd {
         return Result<ValueType, ErrorType> {
             MakeErr<ErrorType>(std::forward<ErrorType>(error))
         };
-    }
-
-    enum class Version {
-        V1,
-        V2,
-        V3
-    };
-
-    enum class ParseVersionError {
-        UnknownVersion
-    };
-
-    constexpr auto ParseVersion(std::string_view version) -> Result<Version, ParseVersionError> {
-        if (version == "v1") {
-            return MakeOk(Version::V1);
-        } else if (version == "v2") {
-            return MakeOk(Version::V2);
-        } else if (version == "v3") {
-            return MakeOk(Version::V3);
-        }
-
-        return MakeErr(ParseVersionError::UnknownVersion);
-    }
-
-    void r() {
-        static_assert(ParseVersion("<?>").UnwrapErr() == ParseVersionError::UnknownVersion);
     }
 
 }
