@@ -1,8 +1,6 @@
 #ifndef GSTD_CONSTANTS_H
 #define GSTD_CONSTANTS_H
 
-#include <gstd/Type/Types.h>
-
 namespace gstd {
 
     GSTD_INLINE static GSTD_CONSTEXPR auto Bt = 1;

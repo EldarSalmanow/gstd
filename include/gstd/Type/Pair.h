@@ -1,43 +1,108 @@
 #ifndef GSTD_PAIR_H
 #define GSTD_PAIR_H
 
-#include <tuple>
+#include <gstd/Macro/Macro.h>
 
 namespace gstd {
 
+    /**
+     *
+     * @tparam FirstT
+     * @tparam SecondT
+     */
     template<typename FirstT,
              typename SecondT>
     class Pair {
     public:
 
+        /*
+         *
+         * Pair PUBLIC TYPES
+         *
+         */
+
+        /**
+         *
+         */
         using FirstType = FirstT;
 
+        /**
+         *
+         */
         using SecondType = SecondT;
+
+    private:
+
+        /*
+         *
+         * Pair PUBLIC TYPES
+         *
+         */
+
+        /**
+         *
+         */
+        using IndexType = std::uint64_t;
+
+    private:
+
+        /*
+         *
+         * Pair PUBLIC ASSERTION
+         *
+         */
+
+        static_assert(std::is_unsigned_v<IndexType>,
+                      "`IndexType` must be unsigned type!");
 
     public:
 
+        /*
+         *
+         * Pair PUBLIC CONSTRUCTORS
+         *
+         */
+
+        GSTD_CONSTEXPR Pair()
+        GSTD_NOEXCEPT(std::conjunction_v<std::is_nothrow_default_constructible<FirstType>,
+                                         std::is_nothrow_default_constructible<SecondType>>)
+                : _first(),
+                  _second() {}
+
         GSTD_CONSTEXPR Pair(FirstType &&first,
-                            SecondType &&second)
+                            SecondType &&second) GSTD_NOEXCEPT
                 : _first(std::move(first)),
                   _second(std::move(second)) {}
 
-        GSTD_CONSTEXPR Pair(const Pair<FirstType,
-                                       SecondType> &pair)
+        GSTD_CONSTEXPR Pair(const Pair &pair)
+        GSTD_NOEXCEPT(std::conjunction_v<std::is_nothrow_copy_constructible<FirstType>,
+                                         std::is_nothrow_copy_constructible<SecondType>>)
                 : _first(pair._first),
                   _second(pair._second) {}
 
-        GSTD_CONSTEXPR Pair(Pair<FirstType,
-                                 SecondType> &&pair) GSTD_NOEXCEPT
+        GSTD_CONSTEXPR Pair(Pair &&pair) GSTD_NOEXCEPT
                 : _first(std::move(pair._first)),
                   _second(std::move(pair._second)) {}
 
     public:
 
+        /*
+         *
+         * Pair PUBLIC STATIC CREATE METHODS
+         *
+         */
+
+        static GSTD_CONSTEXPR auto New() GSTD_NOEXCEPT(GSTD_NOEXCEPT(Pair {})) -> Pair {
+            return Pair {};
+        }
+
         static GSTD_CONSTEXPR auto New(FirstType &&first,
-                                       SecondType &&second) -> Pair<FirstType,
-                                                                    SecondType> {
-            return Pair<FirstType,
-                        SecondType> {
+                                       SecondType &&second)
+        GSTD_NOEXCEPT(GSTD_NOEXCEPT(Pair {
+            std::declval<FirstType>(),
+            std::declval<SecondType>()
+        })) -> Pair {
+            return Pair {
                 std::forward<FirstType>(first),
                 std::forward<SecondType>(second)
             };
@@ -45,46 +110,17 @@ namespace gstd {
 
     public:
 
-        GSTD_CONSTEXPR auto First() & -> FirstType & {
-            return _first;
-        }
+        /*
+         *
+         * Pair PUBLIC METHODS
+         *
+         */
 
-        GSTD_CONSTEXPR auto First() const & -> const FirstType & {
-            return _first;
-        }
-
-        GSTD_CONSTEXPR auto First() && -> FirstType && {
-            return _first;
-        }
-
-        GSTD_CONSTEXPR auto First() const && -> const FirstType && {
-            return _first;
-        }
-
-        GSTD_CONSTEXPR auto Second() & -> SecondType {
-            return _second;
-        }
-
-        GSTD_CONSTEXPR auto Second() const & -> const SecondType {
-            return _second;
-        }
-
-        GSTD_CONSTEXPR auto Second() && -> SecondType && {
-            return _second;
-        }
-
-        GSTD_CONSTEXPR auto Second() const && -> const SecondType && {
-            return _second;
-        }
-
-    public:
-
-        template <size_t Index>
-        GSTD_CONSTEXPR auto get() & -> std::tuple_element_t<Index,
-                                                            gstd::Pair<FirstType,
-                                                                       SecondType>> & {
-            static_assert(Index >= 0 && Index < 2,
-                          "`Index` must be in [0, 1] range for `gstd::Pair<FirstType, SecondType>`!");
+        template <IndexType Index>
+        GSTD_CONSTEXPR auto get() & GSTD_NOEXCEPT -> std::tuple_element_t<Index,
+                                                                          Pair> & {
+            static_assert(Index < 2,
+                          "`Index` must be in [0, 1] range!");
 
             if GSTD_CONSTEXPR (Index == 0) {
                 return _first;
@@ -93,12 +129,11 @@ namespace gstd {
             }
         }
 
-        template <size_t Index>
-        GSTD_CONSTEXPR auto get() const & -> const std::tuple_element_t<Index,
-                                                                        gstd::Pair<FirstType,
-                                                                                   SecondType>> & {
-            static_assert(Index >= 0 && Index < 2,
-                          "`Index` must be in [0, 1] range for `gstd::Pair<FirstType, SecondType>`!");
+        template <IndexType Index>
+        GSTD_CONSTEXPR auto get() const & GSTD_NOEXCEPT -> const std::tuple_element_t<Index,
+                                                                                      Pair> & {
+            static_assert(Index < 2,
+                          "`Index` must be in [0, 1] range!");
 
             if GSTD_CONSTEXPR (Index == 0) {
                 return _first;
@@ -107,12 +142,11 @@ namespace gstd {
             }
         }
 
-        template <size_t Index>
-        GSTD_CONSTEXPR auto get() && -> std::tuple_element_t<Index,
-                                                             gstd::Pair<FirstType,
-                                                                        SecondType>> && {
-            static_assert(Index >= 0 && Index < 2,
-                          "`Index` must be in [0, 1] range for `gstd::Pair<FirstType, SecondType>`!");
+        template <IndexType Index>
+        GSTD_CONSTEXPR auto get() && GSTD_NOEXCEPT -> std::tuple_element_t<Index,
+                                                                           Pair> && {
+            static_assert(Index < 2,
+                          "`Index` must be in [0, 1] range!");
 
             if GSTD_CONSTEXPR (Index == 0) {
                 return std::move(_first);
@@ -121,12 +155,11 @@ namespace gstd {
             }
         }
 
-        template <size_t Index>
-        GSTD_CONSTEXPR auto get() const && -> const std::tuple_element_t<Index,
-                                                                         gstd::Pair<FirstType,
-                                                                                    SecondType>> && {
-            static_assert(Index >= 0 && Index < 2,
-                          "`Index` must be in [0, 1] range for `gstd::Pair<FirstType, SecondType>`!");
+        template <IndexType Index>
+        GSTD_CONSTEXPR auto get() const && GSTD_NOEXCEPT -> const std::tuple_element_t<Index,
+                                                                                       Pair> && {
+            static_assert(Index < 2,
+                          "`Index` must be in [0, 1] range!");
 
             if GSTD_CONSTEXPR (Index == 0) {
                 return std::move(_first);
@@ -137,9 +170,55 @@ namespace gstd {
 
     public:
 
-        GSTD_CONSTEXPR auto operator=(const gstd::Pair<FirstType,
-                                                       SecondType> &pair) -> gstd::Pair<FirstType,
-                                                                                        SecondType> & {
+        /*
+         *
+         * Pair PUBLIC GETTER METHODS
+         *
+         */
+
+        GSTD_CONSTEXPR auto First() & GSTD_NOEXCEPT -> FirstType & {
+            return _first;
+        }
+
+        GSTD_CONSTEXPR auto First() const & GSTD_NOEXCEPT -> const FirstType & {
+            return _first;
+        }
+
+        GSTD_CONSTEXPR auto First() && GSTD_NOEXCEPT -> FirstType && {
+            return _first;
+        }
+
+        GSTD_CONSTEXPR auto First() const && GSTD_NOEXCEPT -> const FirstType && {
+            return _first;
+        }
+
+        GSTD_CONSTEXPR auto Second() & GSTD_NOEXCEPT -> SecondType {
+            return _second;
+        }
+
+        GSTD_CONSTEXPR auto Second() const & GSTD_NOEXCEPT -> const SecondType {
+            return _second;
+        }
+
+        GSTD_CONSTEXPR auto Second() && GSTD_NOEXCEPT -> SecondType && {
+            return _second;
+        }
+
+        GSTD_CONSTEXPR auto Second() const && GSTD_NOEXCEPT -> const SecondType && {
+            return _second;
+        }
+
+    public:
+
+        /*
+         *
+         * Pair PUBLIC OPERATOR METHODS
+         *
+         */
+
+        GSTD_CONSTEXPR auto operator=(const Pair &pair)
+        GSTD_NOEXCEPT(std::conjunction_v<std::is_nothrow_copy_assignable<FirstType>,
+                                         std::is_nothrow_copy_assignable<SecondType>>) -> Pair & {
             if (this == &pair) {
                 return *this;
             }
@@ -150,9 +229,7 @@ namespace gstd {
             return *this;
         }
 
-        GSTD_CONSTEXPR auto operator=(gstd::Pair<FirstType,
-                                                 SecondType> &&pair) GSTD_NOEXCEPT -> gstd::Pair<FirstType,
-                                                                                                 SecondType> & {
+        GSTD_CONSTEXPR auto operator=(Pair &&pair) GSTD_NOEXCEPT -> Pair & {
             if (this == &pair) {
                 return *this;
             }
@@ -163,19 +240,28 @@ namespace gstd {
             return *this;
         }
 
-        GSTD_CONSTEXPR auto operator==(const gstd::Pair<FirstType,
-                                                        SecondType> &pair) const -> bool {
+        GSTD_CONSTEXPR auto operator==(const Pair &pair) const GSTD_NOEXCEPT -> bool {
             return _first == pair._first
                 && _second == pair._second;
         }
 
     private:
 
+        /*
+         *
+         * Pair PRIVATE FIELDS
+         *
+         */
+
         FirstType _first;
 
         SecondType _second;
     };
 
+    /**
+     * @tparam FirstT
+     * @tparam SecondT
+     */
     template<typename FirstT,
              typename SecondT>
     Pair(FirstT,
@@ -226,9 +312,9 @@ namespace std {
             typename FirstT,
             typename SecondT>
     GSTD_CONSTEXPR auto get(gstd::Pair<FirstT,
-                                       SecondT> &pair) -> std::tuple_element_t<Index,
-                                                                               gstd::Pair<FirstT,
-                                                                                          SecondT>> & {
+                                       SecondT> &pair) GSTD_NOEXCEPT -> std::tuple_element_t<Index,
+                                                                                             gstd::Pair<FirstT,
+                                                                                                        SecondT>> & {
         return pair.template get<Index>();
     }
 
@@ -236,9 +322,9 @@ namespace std {
             typename FirstT,
             typename SecondT>
     GSTD_CONSTEXPR auto get(const gstd::Pair<FirstT,
-                                             SecondT> &pair) -> const std::tuple_element_t<Index,
-                                                                                           gstd::Pair<FirstT,
-                                                                                                      SecondT>> & {
+                                             SecondT> &pair) GSTD_NOEXCEPT -> const std::tuple_element_t<Index,
+                                                                                                         gstd::Pair<FirstT,
+                                                                                                                    SecondT>> & {
         return pair.template get<Index>();
     }
 
@@ -246,9 +332,9 @@ namespace std {
             typename FirstT,
             typename SecondT>
     GSTD_CONSTEXPR auto get(gstd::Pair<FirstT,
-                                       SecondT> &&pair) -> std::tuple_element_t<Index,
-                                                                                gstd::Pair<FirstT,
-                                                                                           SecondT>> && {
+                                       SecondT> &&pair) GSTD_NOEXCEPT -> std::tuple_element_t<Index,
+                                                                                              gstd::Pair<FirstT,
+                                                                                                         SecondT>> && {
         return pair.template get<Index>();
     }
 
@@ -256,9 +342,9 @@ namespace std {
             typename FirstT,
             typename SecondT>
     GSTD_CONSTEXPR auto get(const gstd::Pair<FirstT,
-                                             SecondT> &&pair) -> const std::tuple_element_t<Index,
-                                                                                            gstd::Pair<FirstT,
-                                                                                                       SecondT>> && {
+                                             SecondT> &&pair) GSTD_NOEXCEPT -> const std::tuple_element_t<Index,
+                                                                                                          gstd::Pair<FirstT,
+                                                                                                                     SecondT>> && {
         return pair.template get<Index>();
     }
 

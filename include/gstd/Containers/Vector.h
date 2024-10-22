@@ -2,40 +2,23 @@
 #define GSTD_VECTOR_H
 
 #include <gstd/Containers/Slice.h>
-#include <gstd/Type/Optional.h>
-#include <gstd/Type/Types.h>
-
-#include <sstream>
+#include <gstd/Memory/Allocator.h>
 
 namespace gstd {
 
     template<typename ValueT>
-    class Allocator;
-
-    template<typename ValueT,
-             typename AllocatorT = Allocator<ValueT>>
     class Vector {
     public:
 
         using ValueType = ValueT;
 
-        using AllocatorType = AllocatorT;
+        using AllocatorType = Allocator;
 
         using SizeType = std::uint64_t;
 
-        using Iterator = ValueType *;
+        using Iterator = RangeIterator<ValueType>;
 
-        using ConstIterator = const ValueType *;
-
-        /*
-         * TODO
-         */
-        using ReverseIterator = int;
-
-        /*
-         * TODO
-         */
-        using ConstReverseIterator = int;
+        using ConstIterator = /* @todo const? */ RangeIterator<const ValueType>;
 
         using IndexType = std::uint64_t;
 
@@ -52,35 +35,37 @@ namespace gstd {
 
     public:
 
-        GSTD_CONSTEXPR Vector()
+        GSTD_CONSTEXPR Vector(RawPtr<Allocator> allocator = DefaultAllocator())
                 : _buffer(nullptr),
                   _size(0),
-                  _capacity(0) {}
+                  _capacity(0),
+                  _allocator(allocator) {}
 
-        GSTD_CONSTEXPR Vector(ValueType *buffer,
-                              const SizeType &size)
+        GSTD_CONSTEXPR Vector(RawPtr<ValueType> buffer,
+                              const SizeType &size,
+                              RawPtr<Allocator> allocator = DefaultAllocator())
                 : _buffer(buffer),
                   _size(size),
-                  _capacity(size) {}
+                  _capacity(size),
+                  _allocator(allocator) {}
 
-        GSTD_CONSTEXPR Vector(InitializerList<ValueType> initializerList);
+        GSTD_CONSTEXPR Vector(InitializerList<ValueType> initializerList,
+                              RawPtr<Allocator> allocator = DefaultAllocator());
 
-        GSTD_CONSTEXPR Vector(const Vector<ValueType> &vector);
+        GSTD_CONSTEXPR Vector(const Vector &vector);
 
-        GSTD_CONSTEXPR Vector(Vector<ValueType> &&vector) GSTD_NOEXCEPT;
+        GSTD_CONSTEXPR Vector(Vector &&vector) GSTD_NOEXCEPT;
 
     public:
 
         GSTD_CONSTEXPR ~Vector() GSTD_NOEXCEPT {
-            if (_buffer != nullptr) {
+            if (_buffer.HasValue()) {
                 for (IndexType index = 0; index < _size; ++index) {
                     _buffer[index].~ValueType();
                 }
 
-                delete[] _buffer;
+                _allocator->Deallocate(_buffer);
             }
-
-            delete[] _buffer;
 
             _buffer = nullptr;
             _size = 0;
@@ -89,26 +74,26 @@ namespace gstd {
 
     public:
 
-        static GSTD_CONSTEXPR auto New() -> Vector<ValueType> {
-            return Vector<ValueType> {};
+        static GSTD_CONSTEXPR auto New() -> Vector {
+            return Vector {};
         }
 
         static GSTD_CONSTEXPR auto New(ValueType *buffer,
-                                       const SizeType &size) -> Vector<ValueType> {
-            return Vector<ValueType> {
+                                       const SizeType &size) -> Vector {
+            return Vector {
                 buffer,
                 size
             };
         }
 
-        static GSTD_CONSTEXPR auto New(const Vector<ValueType> &vector) -> Vector<ValueType> {
-            return Vector<ValueType> {
+        static GSTD_CONSTEXPR auto New(const Vector &vector) -> Vector {
+            return Vector {
                 vector
             };
         }
 
-        static GSTD_CONSTEXPR auto New(Vector<ValueType> &&vector) GSTD_NOEXCEPT -> Vector<ValueType> {
-            return Vector<ValueType> {
+        static GSTD_CONSTEXPR auto New(Vector &&vector) GSTD_NOEXCEPT -> Vector {
+            return Vector {
                 std::move(vector)
             };
         }
@@ -143,9 +128,21 @@ namespace gstd {
             ++_size;
         }
 
-        GSTD_CONSTEXPR auto At(const IndexType &index) -> Optional<<ValueType>>;
+        GSTD_CONSTEXPR auto At(const IndexType &index) -> Optional<Ref<ValueType>> {
+            if (!InBounds(index)) {
+                return MakeNone();
+            }
 
-        GSTD_CONSTEXPR auto At(const IndexType &index) const -> Optional<Ref<ValueType>>;
+            return MakeSome(MakeRef(_buffer[index]));
+        }
+
+        GSTD_CONSTEXPR auto At(const IndexType &index) const -> Optional<Ref<const ValueType>> {
+            if (!InBounds(index)) {
+                return MakeNone();
+            }
+
+            return MakeSome(MakeCRef(_buffer[index]));
+        }
 
         GSTD_CONSTEXPR auto Insert(const IndexType &index,
                                    const ValueType &value) -> void;
@@ -181,11 +178,27 @@ namespace gstd {
 
         GSTD_CONSTEXPR auto Fit() -> void;
 
+    private:
+
+        GSTD_CONSTEXPR auto InBounds(const IndexType &index) const GSTD_NOEXCEPT -> bool {
+            return index < Size();
+        }
+
     public:
 
-        GSTD_CONSTEXPR auto Iter() -> Iterator;
+        GSTD_CONSTEXPR auto Iter() -> Iterator {
+            return Iterator {
+                _buffer,
+                _buffer + _size
+            };
+        }
 
-        GSTD_CONSTEXPR auto Iter() const -> ConstIterator;
+        GSTD_CONSTEXPR auto Iter() const -> ConstIterator {
+            return ConstIterator {
+                _buffer,
+                _buffer + _size
+            };
+        }
 
         GSTD_CONSTEXPR auto begin() -> Iterator;
 
@@ -201,7 +214,7 @@ namespace gstd {
 
     public:
 
-        GSTD_CONSTEXPR auto operator=(const Vector<ValueType> &vector) -> Vector<ValueType> & {
+        GSTD_CONSTEXPR auto operator=(const Vector &vector) -> Vector & {
             if (&vector == this) {
                 return *this;
             }
@@ -211,7 +224,7 @@ namespace gstd {
             return *this;
         }
 
-        GSTD_CONSTEXPR auto operator=(Vector<ValueType> &&vector) GSTD_NOEXCEPT -> Vector<ValueType> & {
+        GSTD_CONSTEXPR auto operator=(Vector &&vector) GSTD_NOEXCEPT -> Vector & {
             if (&vector == this) {
                 return *this;
             }
@@ -221,21 +234,39 @@ namespace gstd {
             return *this;
         }
 
-        GSTD_CONSTEXPR auto operator==(const Vector<ValueType> &vector) const -> bool;
+        GSTD_CONSTEXPR auto operator==(const Vector &vector) const -> bool;
 
         GSTD_CONSTEXPR auto operator[](const IndexType &index) -> ValueType &;
 
         GSTD_CONSTEXPR auto operator[](const IndexType &index) const -> const ValueType &;
 
-        GSTD_CONSTEXPR auto operator[](const Slice &slice) const -> Vector<ValueType>;
+        GSTD_CONSTEXPR auto operator[](const Slice &slice) const -> Vector;
 
     private:
 
-        ValueType *_buffer;
+        RawPtr<ValueType> _buffer;
 
         SizeType _size;
 
         SizeType _capacity;
+
+        RawPtr<Allocator> _allocator;
+    };
+
+    class StableVector {
+
+    };
+
+    class StaticVector {
+
+    };
+
+    class SmallVector {
+
+    };
+
+    class Devector {
+
     };
 
 }

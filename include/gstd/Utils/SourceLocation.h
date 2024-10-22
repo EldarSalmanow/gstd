@@ -49,9 +49,9 @@ namespace gstd {
 
     public:
 
-        template <size_t Index>
+        template <std::size_t Index>
         GSTD_CONSTEXPR auto get() & {
-            static_assert(Index >= 0 && Index < 3,
+            static_assert(Index < 3,
                           "`Index` must be in [0, 3] range for `gstd::SourceLocation`!");
 
             if GSTD_CONSTEXPR (Index == 0) {
@@ -65,11 +65,11 @@ namespace gstd {
             }
         }
 
-        template <size_t Index>
+        template <std::size_t Index>
         GSTD_CONSTEXPR auto get() const & -> const std::tuple_element_t<Index,
-                gstd::Pair<FirstType,
-                        SecondType>> & {
-            static_assert(Index >= 0 && Index < 2,
+                                                                        Pair<FirstType,
+                                                                             SecondType>> & {
+            static_assert(Index < 2,
                           "`Index` must be in [0, 1] range for `gstd::Pair<FirstType, SecondType>`!");
 
             if GSTD_CONSTEXPR (Index == 0) {

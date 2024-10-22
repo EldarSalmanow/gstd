@@ -1,29 +1,10 @@
 #ifndef GSTD_OPTIONAL_H
 #define GSTD_OPTIONAL_H
 
-#include <gstd/Containers/String.h>
 #include <gstd/Diagnostic/Diagnostic.h>
 #include <gstd/Type/Pair.h>
 #include <gstd/Type/Ref.h>
 #include <gstd/Type/Result.h>
-
-#include <fmt/format.h>
-
-/*
- *
- * TODOL (New Project ???)
- *
- * TODO: {level:
- *              '1',
- *        location:
- *              [Optional::SomeFn],
- *        tags:
- *              'Optional',
- *        text:
- *              'Check the function type 'T''
- *        }
- *
- */
 
 namespace gstd {
 
@@ -74,8 +55,8 @@ namespace gstd {
          * @param value Input value
          * @return `Some` value
          */
-        static GSTD_CONSTEXPR auto New(ValueType &&value) GSTD_NOEXCEPT -> Some<ValueType> {
-            return Some<ValueType> {
+        static GSTD_CONSTEXPR auto New(ValueType &&value) GSTD_NOEXCEPT -> Some {
+            return Some {
                 std::forward<ValueType>(value)
             };
         }
@@ -405,14 +386,14 @@ namespace gstd {
         template<typename T>
         struct IsOptional {
 
-            GSTD_INLINE static GSTD_CONSTEXPR bool Value = false;
+            static GSTD_CONSTEXPR bool Value = false;
 
         };
 
         template<typename T>
         struct IsOptional<Optional<T>> {
 
-            GSTD_INLINE static GSTD_CONSTEXPR bool Value = true;
+            static GSTD_CONSTEXPR bool Value = true;
 
         };
 
@@ -492,14 +473,14 @@ namespace gstd {
          * Copy constructor for `Optional` from other `Optional`
          * @param optional Other `Optional`
          */
-        GSTD_CONSTEXPR Optional(const Optional<ValueType> &optional)
+        GSTD_CONSTEXPR Optional(const Optional &optional)
         GSTD_NOEXCEPT(GSTD_NOEXCEPT(Storage(optional))) = default;
 
         /**
          * Move constructor for `Optional` from other `Optional`
          * @param optional Other `Optional`
          */
-        GSTD_CONSTEXPR Optional(Optional<ValueType> &&optional) GSTD_NOEXCEPT = default;
+        GSTD_CONSTEXPR Optional(Optional &&optional) GSTD_NOEXCEPT = default;
 
     public:
 
@@ -554,12 +535,12 @@ namespace gstd {
         // TODO: comment all
 
         GSTD_CONSTEXPR auto Copy()
-        const & GSTD_NOEXCEPT(std::is_nothrow_copy_constructible_v<ValueType>) -> Optional<ValueType> {
+        const & GSTD_NOEXCEPT(std::is_nothrow_copy_constructible_v<ValueType>) -> Optional {
             return *this;
         }
 
         GSTD_CONSTEXPR auto Copy()
-        const && GSTD_NOEXCEPT(std::is_nothrow_copy_constructible_v<ValueType>) -> Optional<ValueType> = delete;
+        const && GSTD_NOEXCEPT(std::is_nothrow_copy_constructible_v<ValueType>) -> Optional = delete;
 
         GSTD_CONSTEXPR auto AsRef() & GSTD_NOEXCEPT -> Optional<Ref<ValueType>> {
             if (IsNone()) {
@@ -591,11 +572,11 @@ namespace gstd {
 
         GSTD_CONSTEXPR auto AsCRef() const && GSTD_NOEXCEPT -> Optional<Ref<const ValueType>> = delete;
 
-        GSTD_CONSTEXPR auto Move() & GSTD_NOEXCEPT -> Optional<ValueType> && {
+        GSTD_CONSTEXPR auto Move() & GSTD_NOEXCEPT -> Optional && {
             return std::move(*this);
         }
 
-        GSTD_CONSTEXPR auto Move() && GSTD_NOEXCEPT -> Optional<ValueType> && = delete;
+        GSTD_CONSTEXPR auto Move() && GSTD_NOEXCEPT -> Optional && = delete;
 
         /**
          * Check contained value in `Some` value
@@ -800,7 +781,7 @@ namespace gstd {
         GSTD_CONSTEXPR auto Inspect(FunctionT &&function)
         const GSTD_NOEXCEPT(std::conjunction_v<std::is_nothrow_copy_constructible<ValueType>,
                                                std::is_nothrow_invocable<FunctionT &&,
-                                                                         const ValueType &>>) -> Optional<ValueType> {
+                                                                         const ValueType &>>) -> Optional {
             static_assert(std::is_invocable_v<FunctionT &&,
                                               const ValueType &>,
                           "`FunctionT` must be invocable with `ValueType` argument!");
@@ -1122,7 +1103,7 @@ namespace gstd {
         template<typename FunctionT>
         GSTD_CONSTEXPR auto Filter(FunctionT &&function)
         && GSTD_NOEXCEPT(std::is_nothrow_invocable_v<FunctionT &&,
-                                                     const ValueType &>) -> Optional<ValueType> {
+                                                     const ValueType &>) -> Optional {
             static_assert(std::is_invocable_v<FunctionT &&,
                                               const ValueType &>,
                           "`FunctionT` must be invocable with `ValueType` argument!");
@@ -1149,7 +1130,7 @@ namespace gstd {
          * @param inputOptional Input `Optional`
          * @return Result of 'or' boolean operation
          */
-        GSTD_CONSTEXPR auto Or(Optional<ValueType> &&inputOptional) && GSTD_NOEXCEPT -> Optional<ValueType> {
+        GSTD_CONSTEXPR auto Or(Optional<ValueType> &&inputOptional) && GSTD_NOEXCEPT -> Optional {
             if (IsNone()) {
                 return std::move(inputOptional);
             }
@@ -1167,7 +1148,7 @@ namespace gstd {
          */
         template<typename FunctionT>
         GSTD_CONSTEXPR auto OrElse(FunctionT &&function)
-        && GSTD_NOEXCEPT(std::is_nothrow_invocable_v<FunctionT &&>) -> Optional<ValueType> {
+        && GSTD_NOEXCEPT(std::is_nothrow_invocable_v<FunctionT &&>) -> Optional {
             static_assert(std::is_invocable_v<FunctionT &&>,
                           "`FunctionT` must be invocable!");
             static_assert(detail::IsOptionalV<std::invoke_result_t<FunctionT &&>>,
@@ -1190,7 +1171,7 @@ namespace gstd {
          * @param inputOptional Input `Optional`
          * @return Result of 'xor' boolean operation
          */
-        GSTD_CONSTEXPR auto Xor(Optional<ValueType> &&inputOptional) && GSTD_NOEXCEPT-> Optional<ValueType> {
+        GSTD_CONSTEXPR auto Xor(Optional &&inputOptional) && GSTD_NOEXCEPT-> Optional {
             if (IsSome() && inputOptional.IsSome()) {
                 return MakeNone();
             }
@@ -1278,7 +1259,7 @@ namespace gstd {
          * Make copy of this `Optional`, insert into this `Optional` to `None` value and return copy
          * @return Copy of this `Optional`
          */
-        GSTD_CONSTEXPR auto Take() GSTD_NOEXCEPT -> Optional<ValueType> {
+        GSTD_CONSTEXPR auto Take() GSTD_NOEXCEPT -> Optional {
             if (IsNone()) {
                 return MakeNone();
             }
@@ -1301,7 +1282,7 @@ namespace gstd {
         template<typename FunctionT>
         GSTD_CONSTEXPR auto TakeIf(FunctionT &&function)
         GSTD_NOEXCEPT(std::is_nothrow_invocable_v<FunctionT &&,
-                                                  ValueType &>) -> Optional<ValueType> {
+                                                  ValueType &>) -> Optional {
             static_assert(std::is_invocable_v<FunctionT &&,
                                               ValueType &>,
                           "`FunctionT` must be invocable with 'ValueType` argument!");
@@ -1330,7 +1311,7 @@ namespace gstd {
          * @param value Value for inserting
          * @return Copy of this `Optional` before inserting
          */
-        GSTD_CONSTEXPR auto Replace(ValueType &&value) GSTD_NOEXCEPT -> Optional<ValueType> {
+        GSTD_CONSTEXPR auto Replace(ValueType &&value) GSTD_NOEXCEPT -> Optional {
             auto copy = MakeSome(Storage::_some.Move());
 
             Storage::Assign(MakeSome(std::forward<ValueType>(value)));
@@ -1398,21 +1379,21 @@ namespace gstd {
          * @param optional Other `Optional`
          * @return This `Optional` after assignment
          */
-        GSTD_CONSTEXPR auto operator=(const Optional<ValueType> &optional) -> Optional<ValueType> & = default;
+        GSTD_CONSTEXPR auto operator=(const Optional &optional) -> Optional & = default;
 
         /**
          * Move assignment operator for other `Optional`
          * @param optional Other `Optional`
          * @return This `Optional` after assigmment
          */
-        GSTD_CONSTEXPR auto operator=(Optional<ValueType> &&optional) GSTD_NOEXCEPT -> Optional<ValueType> & = default;
+        GSTD_CONSTEXPR auto operator=(Optional &&optional) GSTD_NOEXCEPT -> Optional & = default;
 
         /**
          * Assignment operator for `Some` value
          * @param some `Some` value
          * @return This `Optional` after assignment
          */
-        GSTD_CONSTEXPR auto operator=(Some<ValueType> &&some) -> Optional<ValueType> & {
+        GSTD_CONSTEXPR auto operator=(Some<ValueType> &&some) -> Optional & {
             Storage::Assign(std::forward<Some<ValueType>>(some));
 
             return *this;
@@ -1423,7 +1404,7 @@ namespace gstd {
          * @param none `None` value
          * @return This `Optional` after assignment
          */
-        GSTD_CONSTEXPR auto operator=(None &&none) -> Optional<ValueType> & {
+        GSTD_CONSTEXPR auto operator=(None &&none) -> Optional & {
             Storage::Assign(std::forward<None>(none));
 
             return *this;
@@ -1458,6 +1439,10 @@ namespace gstd {
     GSTD_CONSTEXPR auto MakeNoneOptional() -> Optional<ValueT> {
         return Optional<ValueT>(MakeNone());
     }
+
+    /*
+     * @todo Comment implementation of 'Result' methods
+     */
 
     template<typename ValueT,
              typename ErrorT>

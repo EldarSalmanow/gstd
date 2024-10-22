@@ -6,7 +6,7 @@
 namespace gstd {
 
     /**
-     * Wpapper class for any value
+     * Wrapper class for any value
      * @tparam ValueT Value type
      */
     template<typename ValueT>
@@ -52,8 +52,8 @@ namespace gstd {
          * @param value Input value
          * @return `Ok` value
          */
-        static GSTD_CONSTEXPR auto New(ValueType &&value) GSTD_NOEXCEPT -> Ok<ValueType> {
-            return Ok<ValueType> {
+        static GSTD_CONSTEXPR auto New(ValueType &&value) GSTD_NOEXCEPT -> Ok {
+            return Ok {
                 std::forward<ValueType>(value)
             };
         }
@@ -203,8 +203,8 @@ namespace gstd {
          * @param error Input error
          * @return `Err` value
          */
-        static GSTD_CONSTEXPR auto New(ErrorType &&error) GSTD_NOEXCEPT -> Err<ErrorType> {
-            return Err<ErrorType> {
+        static GSTD_CONSTEXPR auto New(ErrorType &&error) GSTD_NOEXCEPT -> Err {
+            return Err {
                 std::forward<ErrorType>(error)
             };
         }
@@ -529,7 +529,7 @@ namespace gstd {
         template<typename T>
         struct IsResult {
 
-            GSTD_INLINE static GSTD_CONSTEXPR auto Value = false;
+            static GSTD_CONSTEXPR auto Value = false;
 
         };
 
@@ -538,7 +538,7 @@ namespace gstd {
         struct IsResult<Result<T,
                                E>> {
 
-            GSTD_INLINE static GSTD_CONSTEXPR auto Value = true;
+            static GSTD_CONSTEXPR auto Value = true;
 
         };
 
@@ -601,11 +601,9 @@ namespace gstd {
         GSTD_CONSTEXPR Result(Err<ErrorT> &&err) GSTD_NOEXCEPT
                 : Storage(std::move(err)) {}
 
-        GSTD_CONSTEXPR Result(const Result<ValueType,
-                                           ErrorType> &result) = delete;
+        GSTD_CONSTEXPR Result(const Result &result) = delete;
 
-        GSTD_CONSTEXPR Result(Result<ValueType,
-                                     ErrorType> &&result) GSTD_NOEXCEPT = default;
+        GSTD_CONSTEXPR Result(Result &&result) GSTD_NOEXCEPT = default;
 
     public:
 
@@ -664,15 +662,13 @@ namespace gstd {
 
         GSTD_CONSTEXPR auto Copy()
         const & GSTD_NOEXCEPT(std::conjunction_v<std::is_nothrow_copy_constructible<ValueType>,
-                                                 std::is_nothrow_copy_constructible<ErrorType>>) -> Result<ValueType,
-                                                                                                           ErrorType> {
+                                                 std::is_nothrow_copy_constructible<ErrorType>>) -> Result {
             return *this;
         }
 
         GSTD_CONSTEXPR auto Copy()
         const && GSTD_NOEXCEPT(std::conjunction_v<std::is_nothrow_copy_constructible<ValueType>,
-                                                  std::is_nothrow_copy_constructible<ErrorType>>) -> Result<ValueType,
-                                                                                                            ErrorType> = delete;
+                                                  std::is_nothrow_copy_constructible<ErrorType>>) -> Result = delete;
 
         GSTD_CONSTEXPR auto AsRef() & GSTD_NOEXCEPT -> Result<Ref<ValueType>,
                                                               Ref<ErrorType>> {
@@ -710,13 +706,11 @@ namespace gstd {
         GSTD_CONSTEXPR auto AsCRef() const && GSTD_NOEXCEPT -> Result<Ref<const ValueType>,
                                                                       Ref<const ErrorType>> = delete;
 
-        GSTD_CONSTEXPR auto Move() & GSTD_NOEXCEPT -> Result<ValueType,
-                                                             ErrorType> && {
+        GSTD_CONSTEXPR auto Move() & GSTD_NOEXCEPT -> Result && {
             return std::move(*this);
         }
 
-        GSTD_CONSTEXPR auto Move() && GSTD_NOEXCEPT -> Result<ValueType,
-                                                              ErrorType> && = delete;
+        GSTD_CONSTEXPR auto Move() && GSTD_NOEXCEPT -> Result && = delete;
 
         template<typename InputValueT>
         GSTD_CONSTEXPR auto Contains(const InputValueT &value) const GSTD_NOEXCEPT -> bool {
@@ -877,8 +871,7 @@ namespace gstd {
         GSTD_CONSTEXPR auto Inspect(FunctionT &&function)
         const GSTD_NOEXCEPT(std::conjunction_v<std::is_nothrow_copy_constructible<ValueType>,
                                                std::is_nothrow_invocable<FunctionT &&,
-                                                                         const ValueType &>>) -> Result<ValueType,
-                                                                                                        ErrorType> {
+                                                                         const ValueType &>>) -> Result {
             static_assert(std::is_invocable_v<FunctionT &&,
                                               const ValueType &>,
                           "`FunctionT` must be invocable with `ValueType` argument!");
@@ -899,8 +892,7 @@ namespace gstd {
         GSTD_CONSTEXPR auto InspectErr(FunctionT &&function)
         const GSTD_NOEXCEPT(std::conjunction_v<std::is_nothrow_copy_constructible<ErrorType>,
                                                std::is_nothrow_invocable<FunctionT &&,
-                                                                         const ErrorType &>>) -> Result<ValueType,
-                                                                                                        ErrorType> {
+                                                                         const ErrorType &>>) -> Result {
             static_assert(std::is_invocable_v<FunctionT &&,
                                               const ErrorType &>,
                           "`FunctionT` must be invocable with `ErrorType` argument!");
@@ -1075,24 +1067,18 @@ namespace gstd {
 
     public:
 
-        GSTD_CONSTEXPR auto operator=(const Result<ValueType,
-                                                   ErrorType> &result) -> Result<ValueType,
-                                                                                 ErrorType> & = delete;
+        GSTD_CONSTEXPR auto operator=(const Result &result) -> Result & = delete;
 
-        GSTD_CONSTEXPR auto operator=(Result<ValueType,
-                                             ErrorType> &&result) GSTD_NOEXCEPT -> Result<ValueType,
-                                                                                          ErrorType> & = default;
+        GSTD_CONSTEXPR auto operator=(Result &&result) GSTD_NOEXCEPT -> Result & = default;
 
 
-        GSTD_CONSTEXPR auto operator=(Ok<ValueType> &&ok) GSTD_NOEXCEPT -> Result<ValueType,
-                                                                                  ErrorType> & {
+        GSTD_CONSTEXPR auto operator=(Ok<ValueType> &&ok) GSTD_NOEXCEPT -> Result & {
             Storage::Assign(std::forward<Ok<ValueType>>(ok));
 
             return *this;
         }
 
-        GSTD_CONSTEXPR auto operator=(Err<ErrorType> &&err) GSTD_NOEXCEPT -> Result<ValueType,
-                                                                                    ErrorType> & {
+        GSTD_CONSTEXPR auto operator=(Err<ErrorType> &&err) GSTD_NOEXCEPT -> Result & {
             Storage::Assign(std::forward<Err<ErrorType>>(err));
 
             return *this;
@@ -1105,7 +1091,8 @@ namespace gstd {
 
     template<typename ValueType,
              typename ErrorType>
-    GSTD_CONSTEXPR auto MakeOkResult(ValueType &&value) -> Result<ValueType, ErrorType> {
+    GSTD_CONSTEXPR auto MakeOkResult(ValueType &&value) -> Result<ValueType,
+                                                                  ErrorType> {
         return Result<ValueType, ErrorType> {
             MakeOk<ValueType>(std::forward<ValueType>(value))
         };
@@ -1114,8 +1101,9 @@ namespace gstd {
     template<typename ValueType,
              typename ErrorType>
     GSTD_CONSTEXPR auto MakeErrResult(ErrorType &&error) -> Result<ValueType,
-                                                             ErrorType> {
-        return Result<ValueType, ErrorType> {
+                                                                   ErrorType> {
+        return Result<ValueType,
+                      ErrorType> {
             MakeErr<ErrorType>(std::forward<ErrorType>(error))
         };
     }

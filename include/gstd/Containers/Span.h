@@ -2,9 +2,7 @@
 #define GSTD_SPAN_H
 
 #include <gstd/Containers/Slice.h>
-#include <gstd/Type/Optional.h>
-
-#include <array>
+#include <gstd/Type/Iterator.h>
 
 namespace gstd {
 
@@ -24,19 +22,27 @@ namespace gstd {
 
         using ConstReference = const ValueType &;
 
-        using Iterator = ValueType *;
+        using Iterator = RangeIterator<ValueType>;
 
-        using ConstIterator = const ValueType *;
+        using ConstIterator = /* @todo const? */ RangeIterator<const ValueType>;
 
         using IndexType = std::uint64_t;
 
     public:
 
+        static_assert(std::is_unsigned_v<SizeType>,
+                      "`SizeType` must be unsigned type!");
+
+        static_assert(std::is_unsigned_v<IndexType>,
+                      "`IndexType` must be unsigned type!");
+
+    public:
+
         GSTD_CONSTEXPR Span() GSTD_NOEXCEPT = default;
 
-        GSTD_CONSTEXPR Span(Iterator iterator,
+        GSTD_CONSTEXPR Span(Pointer pointer,
                             SizeType size) GSTD_NOEXCEPT
-                : _iterator(iterator),
+                : _pointer(pointer),
                   _size(size) {}
 
         template<typename InputValueT,
@@ -45,57 +51,31 @@ namespace gstd {
         GSTD_CONSTEXPR Span(Span<InputValueT> span)
         GSTD_NOEXCEPT(std::is_nothrow_convertible_v<InputValueT,
                                                     ValueType>)
-                : _iterator(static_cast<Iterator>(span._iterator)),
+                : _pointer(static_cast<Pointer>(span._pointer)),
                   _size(span._size) {}
 
         template<SizeType SizeV>
-        constexpr Span(ValueType (&array)[SizeV])
-                : _iterator(static_cast<Iterator>(array)),
+        GSTD_CONSTEXPR Span(ValueType (&array)[SizeV]) GSTD_NOEXCEPT
+                : _pointer(static_cast<Pointer>(array)),
                   _size(SizeV) {}
 
-        template<SizeType SizeV>
-        GSTD_CONSTEXPR Span(std::array<ValueType,
-                                       SizeV> &array) GSTD_NOEXCEPT
-                : _iterator(static_cast<Iterator>(array.data())),
-                  _size(SizeV) {}
+        GSTD_CONSTEXPR Span(const Span &span) GSTD_NOEXCEPT
+                : _pointer(span._pointer),
+                  _size(span._size) {}
 
-        template<SizeType SizeV>
-        GSTD_CONSTEXPR Span(const std::array<ValueType,
-                                             SizeV> &array) GSTD_NOEXCEPT
-                : _iterator(static_cast<Iterator>(array.data())),
-                  _size(SizeV) {}
-
-        template<typename InputValueT,
-                 SizeType SizeV>
-        GSTD_CONSTEXPR Span(std::array<InputValueT,
-                                       SizeV> &&array) = delete;
-
-        /**
-         *
-         * @tparam ContainerT
-         * @param container
-         * @todo Add check container type
-         */
-        template<typename ContainerT>
-        GSTD_CONSTEXPR Span(ContainerT &container)
-                : _iterator(static_cast<Iterator>(std::data(container))),
-                  _size(std::size(container)) {}
-
-        GSTD_CONSTEXPR Span(const Span<ValueType> &span) GSTD_NOEXCEPT = default;
-
-        GSTD_CONSTEXPR Span(Span<ValueType> &&span) GSTD_NOEXCEPT = default;
+        GSTD_CONSTEXPR Span(Span &&span) GSTD_NOEXCEPT = default;
 
     public:
 
         GSTD_CONSTEXPR auto Data() const GSTD_NOEXCEPT -> Pointer {
-            return _iterator;
+            return _pointer;
         }
 
         GSTD_CONSTEXPR auto Size() const GSTD_NOEXCEPT -> SizeType {
             return _size;
         }
 
-        GSTD_CONSTEXPR auto SizeBytes() const GSTD_NOEXCEPT -> SizeType {
+        GSTD_CONSTEXPR auto SizeInBytes() const GSTD_NOEXCEPT -> SizeType {
             return _size * sizeof(ValueType);
         }
 
@@ -103,70 +83,124 @@ namespace gstd {
             return _size == 0;
         }
 
-        GSTD_CONSTEXPR auto At(const SizeType &index) const -> Optional<Ref<ValueType>> {
-            if ((index < 0) || (index >= _size)) {
+        GSTD_CONSTEXPR auto At(const SizeType &index) const GSTD_NOEXCEPT -> Optional<Ref<ValueType>> {
+            if (index >= _size) {
                 return MakeNone();
             }
 
-            return MakeSome(MakeRef(_iterator[index]));
+            return MakeSome(MakeRef(_pointer[index]));
         }
 
-        GSTD_CONSTEXPR auto Front() const GSTD_NOEXCEPT -> Optional<ValueType *> {
+        GSTD_CONSTEXPR auto Front() const GSTD_NOEXCEPT -> Optional<Pointer> {
             if (Empty()) {
                 return MakeNone();
             }
 
-            return MakeSome(_iterator);
+            return MakeSome(_pointer);
         }
 
-        GSTD_CONSTEXPR auto Back() const GSTD_NOEXCEPT -> Optional<ValueType *> {
+        GSTD_CONSTEXPR auto Back() const GSTD_NOEXCEPT -> Optional<Pointer> {
             if (Empty()) {
                 return None();
             }
 
-            return Some(_iterator + (_size - 1));
+            return MakeSome(_pointer + (_size - 1));
+        }
+
+        GSTD_CONSTEXPR auto Iter() GSTD_NOEXCEPT -> Iterator {
+            return Iterator {
+                _pointer,
+                _pointer + _size
+            };
+        }
+
+        GSTD_CONSTEXPR auto Iter() const GSTD_NOEXCEPT -> ConstIterator {
+            return ConstIterator {
+                _pointer,
+                _pointer + _size
+            };
+        }
+
+        GSTD_CONSTEXPR auto AsConst() const GSTD_NOEXCEPT -> Span<const ValueType> {
+            return Span<const ValueType> {
+                _pointer,
+                _size
+            };
+        }
+
+        GSTD_CONSTEXPR auto AsVolatile() const GSTD_NOEXCEPT -> Span<volatile ValueType> {
+            return Span<volatile ValueType> {
+                _pointer,
+                _size
+            };
+        }
+
+        template<typename ToValueT>
+        GSTD_CONSTEXPR auto Transmute() const -> Span<ToValueT> {
+            return Span<ToValueT> {
+                reinterpret_cast<typename Span<ToValueT>::Pointer>(_pointer),
+                SizeInBytes() / sizeof(ToValueT)
+            };
         }
 
     public:
 
         GSTD_CONSTEXPR auto begin() GSTD_NOEXCEPT -> Iterator {
-            return _iterator;
+            return Iterator {
+                _pointer,
+                _pointer + _size
+            };
         }
 
         GSTD_CONSTEXPR auto end() GSTD_NOEXCEPT -> Iterator {
-            return _iterator;
+            return Iterator {
+                _pointer,
+                _pointer + _size
+            };
         }
 
         GSTD_CONSTEXPR auto begin() const GSTD_NOEXCEPT -> ConstIterator {
-            return _iterator;
+            return ConstIterator {
+                _pointer,
+                _pointer + _size
+            };
         }
 
         GSTD_CONSTEXPR auto end() const GSTD_NOEXCEPT -> ConstIterator {
-            return _iterator;
-        }
-
-        GSTD_CONSTEXPR auto cbegin() const GSTD_NOEXCEPT -> ConstIterator {
-            return _iterator;
-        }
-
-        GSTD_CONSTEXPR auto cend() const GSTD_NOEXCEPT -> ConstIterator {
-            return _iterator;
+            return ConstIterator {
+                _pointer,
+                _pointer + _size
+            };
         }
 
     public:
 
-        GSTD_CONSTEXPR auto operator=(const Span<ValueType> &span) /*GSTD_NOEXCEPT*/ -> Span<ValueType> & = default;
+        GSTD_CONSTEXPR auto operator=(const Span &span) GSTD_NOEXCEPT -> Span & {
+            if (this == &span) {
+                return *this;
+            }
 
-        GSTD_CONSTEXPR auto operator=(Span<ValueType> &&span) GSTD_NOEXCEPT -> Span<ValueType> & = default;
+            _pointer = span._pointer;
+            _size = span._size;
+
+            return *this;
+        }
+
+        GSTD_CONSTEXPR auto operator=(Span &&span) GSTD_NOEXCEPT -> Span & {
+            _pointer = std::move(span._pointer);
+            _size = span._size;
+
+            return *this;
+        }
 
         GSTD_CONSTEXPR auto operator[](const IndexType &index) const -> Reference {
-            return At(index).template UnwrapOrElse([] () {
+            return At(index).UnwrapOrElse([] () {
                 Panic("Index out of range!");
             });
         }
 
         // TODO: CHECK!
-        GSTD_CONSTEXPR auto operator[](const Slice &slice) const -> Span<ValueType> {
+        GSTD_CONSTEXPR auto operator[](const Slice &slice) const -> Span {
             auto start = slice.GetStart();
             auto stop = slice.GetStop();
             auto step = slice.GetStep();
@@ -194,24 +228,36 @@ namespace gstd {
                 absoluteStop = (_size - stop);
             }
 
-            return Span<ValueType> {
-                _iterator + absoluteStart,
+            if (absoluteStart > absoluteStop) {
+                Panic("Invalid slice!");
+            }
+
+            return Span {
+                _pointer + absoluteStart,
                 absoluteStart - absoluteStop
             };
         }
 
     private:
 
-        Iterator _iterator;
+        Pointer _pointer;
 
         SizeType _size;
     };
 
     template<typename ValueT>
-    GSTD_CONSTEXPR auto MakeSpan(ValueT *iterator,
+    Span(ValueT *pointer,
+         std::uint64_t size) -> Span<ValueT>;
+
+    template<typename ValueT,
+             std::uint64_t SizeV>
+    Span(ValueT (&array)[SizeV]) -> Span<ValueT>;
+
+    template<typename ValueT>
+    GSTD_CONSTEXPR auto MakeSpan(ValueT *pointer,
                                  std::uint64_t size) -> Span<ValueT> {
         return Span<ValueT> {
-            iterator,
+            pointer,
             size
         };
     }

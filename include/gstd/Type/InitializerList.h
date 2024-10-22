@@ -96,6 +96,8 @@ namespace gstd {
          *
          * InitializerList PUBLIC ITERATOR METHODS
          *
+         * @todo Revisit iteration methods
+         *
          */
 
         /**

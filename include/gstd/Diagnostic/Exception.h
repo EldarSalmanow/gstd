@@ -3,44 +3,12 @@
 
 namespace gstd {
 
-    class Exception {
-    public:
+    // class Exception : public std::exception {
+    // public:
 
-        Exception();
-    };
+        // Exception();
+    // };
 
-    class ExceptionHandler {
-    public:
-
-        ExceptionHandler();
-
-    public:
-
-        [[noreturn]] auto Handle(const Exception &exception) -> void;
-    };
-
-    auto GlobalEH() -> ExceptionHandler & {
-        static ExceptionHandler handler;
-
-        return handler;
-    }
-
-//    //using PanicHandler = [[noreturn]] void (*) ();
-//
-////[[noreturn]] void default_panic_handler() {
-////    abort();
-////}
-//
-////static PanicHandler GlobalPanicHandler = default_panic_handler;
-//
-//    [[noreturn]] void panic(); //{
-////    GlobalPanicHandler();
-////}
-//
-////PanicHandler get_panic_handler();
-////
-////PanicHandler set_panic_handler(PanicHandler handler);
-//
 //    class ErrorId {
 //    public:
 //
@@ -260,20 +228,20 @@ namespace gstd {
     // pool_context - информация о хранилище обработчиков, потоках ввода-вывода и т.д.
     // error(<error>, <raise_context>, <pool_context>) -> EHPool -> <error_handler>.CanHandle(<error>) -> <error_handler>.Handle(<error>) -> <handling> -> panic() -> <panic_handler> -> <end>
 
-    template<typename ExceptionT,
-             typename FunctionT,
-             typename... ArgumentsT>
-    auto Catch(FunctionT &&function,
-               ArgumentsT &&...arguments) -> gstd::Result<std::invoke_result_t<FunctionT &&,
-                                                                               ArgumentsT &&...>,
-                                                          ExceptionT> {
-        try {
-            return gstd::MakeOk(std::invoke(std::forward<FunctionT>(function),
-                                            std::forward<ArgumentsT>(arguments)...));
-        } catch (ExceptionT &exception) {
-            return gstd::MakeErr(std::move(exception));
-        }
-    }
+    // template<typename ExceptionT,
+             // typename FunctionT,
+             // typename... ArgumentsT>
+    // auto Catch(FunctionT &&function,
+               // ArgumentsT &&...arguments) -> gstd::Result<std::invoke_result_t<FunctionT &&,
+                                                                               // ArgumentsT &&...>,
+                                                          // ExceptionT> {
+        // try {
+            // return gstd::MakeOk(std::invoke(std::forward<FunctionT>(function),
+                                            // std::forward<ArgumentsT>(arguments)...));
+        // } catch (ExceptionT &exception) {
+            // return gstd::MakeErr(std::move(exception));
+        // }
+    // }
 
 }
 

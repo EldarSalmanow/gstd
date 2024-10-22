@@ -3,9 +3,14 @@
 
 namespace gstd {
 
-    template<typename ValueT,
-             typename AllocatorT>
+    template<typename ValueT>
     class Queue {
+    private:
+
+
+    };
+
+    class PriorityQueue {
 
     };
 

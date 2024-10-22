@@ -20,7 +20,7 @@ namespace gstd {
      * Class for making slices from data by start and stop position and step<br>
      * For example
      * @code
-     * Vector<int> vector = {1, 2, 3, 4, 5, 6 };
+     * Vector<int> vector = {1, 2, 3, 4, 5, 6};
      * vector[Slice::New(NoPos, 4)]; // [1, 2, 3, 4]
      * vector[Slice::New(NoPos, NoPos)]; // [1, 2, 3, 4, 5, 6]
      * vector[Slice::New(3, NoPos)]; // [4, 5, 6]

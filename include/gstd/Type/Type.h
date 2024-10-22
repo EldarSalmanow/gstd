@@ -3,7 +3,9 @@
 
 #include <gstd/Type/Any.h>
 #include <gstd/Type/Convert.h>
+#include <gstd/Type/Fn.h>
 #include <gstd/Type/InitializerList.h>
+#include <gstd/Type/Iterator.h>
 #include <gstd/Type/Optional.h>
 #include <gstd/Type/Pair.h>
 #include <gstd/Type/Ref.h>

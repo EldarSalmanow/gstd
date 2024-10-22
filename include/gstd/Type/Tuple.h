@@ -10,7 +10,8 @@ namespace gstd {
 
     template<typename T,
              typename... Types>
-    class Tuple<T, Types...> : public Tuple<Types...> {
+    class Tuple<T,
+                Types...> : public Tuple<Types...> {
     public:
 
         using Type = T;

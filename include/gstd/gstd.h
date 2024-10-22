@@ -34,6 +34,7 @@
 #include <gstd/Macro/Macro.h>
 #include <gstd/Memory/Memory.h>
 #include <gstd/Meta/Meta.h>
+#include <gstd/System/System.h>
 #include <gstd/Type/Type.h>
 #include <gstd/Utils/Utils.h>
 

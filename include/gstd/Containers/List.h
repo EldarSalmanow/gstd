@@ -1,49 +1,167 @@
 #ifndef GSTD_LIST_H
 #define GSTD_LIST_H
 
+#include <gstd/Containers/Node.h>
+
 namespace gstd {
 
-    namespace detail {
+    template<typename ValueT>
+    class SinglyLinkedList;
 
-        template<typename ValueT>
-        class Node {
-        public:
+    template<typename ValueT>
+    class SinglyLinkedListIterator {
+    public:
 
-            using ValueType = ValueT;
+        friend class SinglyLinkedList<ValueT>;
 
-        private:
-
-            ValueType _value;
-
-            Optional<Node<ValueType>> _next;
-        };
-
-    }
-
-    template<typename ValueT,
-             typename AllocatorT>
-    class List {
     public:
 
         using ValueType = ValueT;
 
-        using AllocatorType = AllocatorT;
+        using ContainerType = SinglyLinkedList<ValueType>;
+
+        using NodeType = SinglyLinkedNode<ValueType>;
 
     public:
 
-        constexpr auto operator[](size_t index) {
-            auto current = _begin;
+        SinglyLinkedListIterator(NodeType *current)
+                : _current(current) {}
 
-            for (size_t i = 0; i < index && current._next.IsSome(); ++i) {
-                current = current._next;
+    public:
+
+        GSTD_CONSTEXPR auto operator++() -> void {
+            if (!_current->Next()) {
+                Panic("!!!");
             }
 
-            return current._value;
+            _current = _current->Next();
+        }
+
+        GSTD_CONSTEXPR auto operator*() const -> ValueType & {
+            return _current->Value();
         }
 
     private:
 
-        Optional<detail::Node<ValueT>> _begin;
+        NodeType *_current;
+    };
+
+    template<typename ValueT>
+    class SinglyLinkedList {
+    public:
+
+        using ValueType = ValueT;
+
+        using SizeType = std::uint64_t;
+
+        using IndexType = std::uint64_t;
+
+        using NodeType = SinglyLinkedNode<ValueType>;
+
+        using IteratorType = SinglyLinkedListIterator<ValueType>;
+
+        using ConstIteratorType = const SinglyLinkedListIterator<const ValueType>;
+
+    public:
+
+        GSTD_CONSTEXPR auto At(IndexType index) GSTD_NOEXCEPT -> Optional<Ref<ValueType>> {
+            if (index >= Size()) {
+                return MakeNone();
+            }
+
+            auto current = _begin;
+
+            for (IndexType i = 0; i < index; ++i) {
+                current = current._next;
+            }
+
+            return MakeSome(MakeRef(current._value));
+        }
+
+        void Add(ValueType value) {
+            if (!_begin) {
+                _begin = new NodeType(std::move(value),
+                                      nullptr);
+
+                return;
+            }
+
+            auto current = _begin;
+
+            for (IndexType index = 0; index < Size(); ++index) {
+                current = _begin->Next();
+            }
+
+            current->Next() = new NodeType(std::move(value), nullptr);
+        }
+
+        GSTD_CONSTEXPR auto Remove(const ValueType &value) -> void {
+            auto iterator = Find(value);
+
+            if (iterator != end()) {
+                auto next = iterator._current._next;
+
+
+            }
+        }
+
+        GSTD_CONSTEXPR auto Find(const ValueType &value) -> IteratorType {
+            auto current = begin();
+
+            while (current != end()
+                && current->Value() != value) {
+                ++current;
+            }
+
+            return current;
+        }
+
+        GSTD_CONSTEXPR auto Find(const ValueType &value) const -> ConstIteratorType {
+            auto current = begin();
+
+            while (current != end()
+                   && current->Value() != value) {
+                ++current;
+            }
+
+            return current;
+        }
+
+        GSTD_CONSTEXPR auto Size() const GSTD_NOEXCEPT {
+            return _size;
+        }
+
+    public:
+
+        GSTD_CONSTEXPR auto begin() -> IteratorType {
+            return IteratorType(_begin);
+        }
+
+        GSTD_CONSTEXPR auto end() -> IteratorType {
+            return IteratorType(_begin);
+        }
+
+        GSTD_CONSTEXPR auto begin() const -> ConstIteratorType {
+            return ConstIteratorType(_begin);
+        }
+
+        GSTD_CONSTEXPR auto end() const -> ConstIteratorType {
+            return ConstIteratorType(_begin);
+        }
+
+    public:
+
+        constexpr auto operator[](IndexType index) {
+            return At(index).UnwrapOrElse([] () -> void {
+                Panic("Index out of range!");
+            });
+        }
+
+    private:
+
+        NodeType *_begin;
+
+        SizeType _size;
     };
 
 }
